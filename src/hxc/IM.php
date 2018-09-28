@@ -8,14 +8,35 @@
 
 namespace HXC;
 
+use GuzzleHttp\Client;
 use Tencent\TLSSigAPI;
 
 define('BASE_PATH',str_replace( '\\' , '/' , realpath(dirname(__FILE__).'/../../../../../')).'/');
 
 class IM
 {
-    static private $identifier;
+    private static $sig; //用户签名
+    private static $identifier; //用户名称
+    private static $targetUsersig = '';//目标sig，例如需要校验的usersig
+    private static $postData = [];//post请求要发送的数据
+    private static $url = 'https://console.tim.qq.com/';//请求的url
 
+
+    /**
+     * @return TLSSigAPI
+     * @throws \Exception
+     */
+    public static function getApi()
+    {
+        $config = C('im');
+        $api = new TLSSigAPI();
+        $api->SetAppid($config['appid']);//设置在腾讯云申请的appid
+        $private_key = file_get_contents(BASE_PATH.$config['path'].'/private_key');
+        $public_key = file_get_contents(BASE_PATH.$config['path'].'/public_key');
+        $api->SetPrivateKey($private_key);//生成usersig需要先设置私钥
+        $api->SetPublicKey($public_key);//校验usersig需要先设置公钥
+        return $api;
+    }
 
     /**
      * 用户
@@ -24,58 +45,155 @@ class IM
      */
     public static function identifier($identifier)
     {
-        try{
-            if($identifier){
-                self::$identifier = $identifier;
-                return new IM();
-            }else{
-                throw new \Error('$identifier不能为空');
-            }
-        }catch (\Error $e){
-            echo $e;
+        self::$identifier = $identifier;
+        self::genSig($identifier);
+        return new self();
+    }
+
+    /**
+     * 管理员
+     * @return IM
+     */
+    public static function admin()
+    {
+        if(!$admin_name = C('im.admin_name')){
+            throw new \Error('请先在TP配置中定义管理员名称');
+        }else{
+            self::$identifier = $admin_name;
+            self::genSig($admin_name);
         }
+        return new self();
+    }
+
+    /**
+     * 获取用户签名
+     * @return mixed
+     */
+    public function get()
+    {
+        return self::$sig;
     }
 
 
-
-    public function genSig()
+    /**
+     * 生成用户签名
+     * @param $identifier
+     * @return string
+     * @throws \Exception
+     */
+    public static function genSig($identifier)
     {
+        $config = C('im');
+        $api = self::getApi();
         $cache = S([
             'prefix'=>'usersig',
-            'expire'=>15550000
+            'expire'=>15552000,
         ]);
-        $identifier = self::$identifier;
         $usersig = $cache->$identifier;
         if(!$usersig){
-            $config = C('im');
-            $private_key = file_get_contents(BASE_PATH.$config['path'].'/private_key');
-            $public_key = file_get_contents(BASE_PATH.$config['path'].'/public_key');
-            $api = new TLSSigAPI();
-            $api->SetAppid($config['appid']);//设置在腾讯云申请的appid
-            $api->SetPrivateKey($private_key);//生成usersig需要先设置私钥
-            $api->SetPublicKey($public_key);//校验usersig需要先设置公钥
             $sig = $api->genSig($identifier);//生成usersig
             $cache->$identifier = $sig;
-            return $sig;
+            return self::$sig = $sig;
         }
-        return $usersig;
+        return self::$sig = $usersig;
+    }
+
+    /**
+     * 要验证的usersig
+     * @param $usersig
+     * @return IM
+     */
+    public static function usersig($usersig)
+    {
+        self::$targetUsersig = $targetUsersig;
+        return new self();
     }
 
     /**
      * 校验usersig
      */
-    public function verifySig($sig)
+    public function verifySig()
     {
-        $api = new TLSSigAPI();
+        $cache = S([
+            'prefix'=>'usersig',
+            'expire'=>15552000,
+        ]);
+        if(self::$targetUsersig){
+            $sig = $targetUsersig;
+        }else{
+            $sig = self::$sig;
+        }
+        $api = self::getApi();
         $result = $api->verifySig($sig, self::$identifier, $init_time, $expire_time, $error_msg);//校验usersig
-        var_dump($result);
-        var_dump($init_time);
-        var_dump($expire_time);
-        var_dump($error_msg);
+        if($result){
+            $data['status'] = 1;
+            $data['init_time'] = $init_time;
+            $data['expire_time'] = $expire_time;
+        }else{
+            $data['status'] = 0;
+            $data['msg'] = $error_msg;
+        }
+        return $data;
+    }
+
+
+    /**
+     * 获取管理员usersig
+     * @return string
+     * @throws \Exception
+     */
+    public static function getAdminData()
+    {
+        $cache = S([
+            'prefix'=>'usersig',
+            'expire'=>15552000,
+        ]);
+        $config = I('im');
+        $data['usersig'] = self::genSig($config['admin_name']);
+        $data['identifier'] = $admin_name;
+        $data['sdkappid'] = $config['appid'];
+    }
+
+    /**
+     * 随机数
+     * @param int $length
+     * @return int
+     */
+    public static function getRandom($length = 8)
+    {
+        $min = pow(10 , ($length - 1));
+        $max = pow(10, $length) - 1;
+        return mt_rand($min, $max);
     }
 
 
     //TODO 批量导入关系链
+    public static function multiAccountImport($accounts)
+    {
+        if(!is_array($accounts)) throw new \Error('$accounts必须为数组');
+        $admin_data = self::getAdminData();
+        $random = self::getRandom();
+        self::$url .= "v4/im_open_login_svc/multiaccount_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['config']}&random={$random}&contenttype=json";
+        self::$postData = ["Accounts" => $accounts];
+        return new self();
+    }
+
+    public function post()
+    {
+        $client = new Client();
+        $client->setDefaultOption('verify', false);
+//        $response = $client->request('POST', self::$url, self::$postData);
+        $res = $client->request('GET', 'https://api.github.com/user', [
+            'auth' => ['user', 'pass']
+        ]);
+        echo $res->getStatusCode();
+// "200"
+        echo $res->getHeader('content-type');
+// 'application/json; charset=utf8'
+        echo $res->getBody();
+    }
+
+
 
     //TODO 单个导入
 
