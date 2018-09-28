@@ -15,6 +15,8 @@ define('BASE_PATH',str_replace( '\\' , '/' , realpath(dirname(__FILE__).'/../../
 
 class IM
 {
+    use HXC\Api\Base;
+    
     private static $sig; //用户签名
     private static $identifier; //用户名称
     private static $targetUsersig = '';//目标sig，例如需要校验的usersig
@@ -148,10 +150,11 @@ class IM
             'prefix'=>'usersig',
             'expire'=>15552000,
         ]);
-        $config = I('im');
+        $config = C('im');
         $data['usersig'] = self::genSig($config['admin_name']);
-        $data['identifier'] = $admin_name;
-        $data['sdkappid'] = $config['appid'];
+        $data['identifier'] = $config['admin_name'];
+        $data['appid'] = $config['appid'];
+        return $data;
     }
 
     /**
@@ -167,35 +170,51 @@ class IM
     }
 
 
-    //TODO 批量导入关系链
+    /**
+     * 批量导入
+     * @param $accounts
+     * @return IM
+     * @throws \Exception
+     */
     public static function multiAccountImport($accounts)
     {
         if(!is_array($accounts)) throw new \Error('$accounts必须为数组');
         $admin_data = self::getAdminData();
         $random = self::getRandom();
-        self::$url .= "v4/im_open_login_svc/multiaccount_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['config']}&random={$random}&contenttype=json";
-        self::$postData = ["Accounts" => $accounts];
+        self::$url .= "v4/im_open_login_svc/multiaccount_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['appid']}&random={$random}&contenttype=json";
+        self::$postData = json_encode(["Accounts" => $accounts]);
         return new self();
     }
 
+    /**
+     * 导入账号
+     * @param $account_arr
+     * @return IM
+     * @throws \Exception
+     */
+    public static function accountImport($account_arr)
+    {
+        $admin_data = self::getAdminData();
+        $random = self::getRandom();
+        self::$url .= "v4/im_open_login_svc/account_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['appid']}&random={$random}&contenttype=json";
+        self::$postData = json_encode($account_arr);
+        return new self();
+    }
+
+    /**
+     * 发起post请求
+     * @return string
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function post()
     {
         $client = new Client();
-        $client->setDefaultOption('verify', false);
-//        $response = $client->request('POST', self::$url, self::$postData);
-        $res = $client->request('GET', 'https://api.github.com/user', [
-            'auth' => ['user', 'pass']
+        $response = $client->request('POST', self::$url, [
+            'body' => self::$postData
         ]);
-        echo $res->getStatusCode();
-// "200"
-        echo $res->getHeader('content-type');
-// 'application/json; charset=utf8'
-        echo $res->getBody();
+        return $response->getBody()->getContents();
     }
 
-
-
-    //TODO 单个导入
 
     //TODO 登录态失效
 
