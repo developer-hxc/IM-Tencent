@@ -9,13 +9,14 @@
 namespace HXC;
 
 use GuzzleHttp\Client;
+use HXC\Api\base;
 use Tencent\TLSSigAPI;
 
 define('BASE_PATH',str_replace( '\\' , '/' , realpath(dirname(__FILE__).'/../../../../../')).'/');
 
 class IM
 {
-    use HXC\Api\Base;
+    use base;
     
     private static $sig; //用户签名
     private static $identifier; //用户名称
