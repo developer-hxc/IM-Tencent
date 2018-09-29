@@ -75,6 +75,31 @@ trait base
     }
 
     /**
+     * 拉取用户资料
+     * @param $data
+     * @return base
+     */
+    public static function portraitGet($data)
+    {
+        self::$url .= "v4/profile/portrait_get";
+        self::$postData = $data;
+        return new self();
+    }
+
+    /**
+     * 设置用户资料
+     * 接受字段请访问查看 https://cloud.tencent.com/document/product/269/1500#.E8.87.AA.E5.AE.9A.E4.B9.89.E8.B5.84.E6.96.99.E5.AD.97.E6.AE.B5
+     * @param $data
+     * @return base
+     */
+    public static function portraitSet($data)
+    {
+        self::$url .= "v4/profile/portrait_set";
+        self::$postData = $data;
+        return new self();
+    }
+
+    /**
      * 发起post请求
      * @return string
      * @throws \GuzzleHttp\Exception\GuzzleException
