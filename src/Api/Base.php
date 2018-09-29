@@ -1,9 +1,11 @@
 <?php
 namespace HXC\Api;
 
+use GuzzleHttp\Client;
+
 trait base
 {
-	/**
+    /**
      * 获取管理员usersig
      * @return string
      * @throws \Exception
@@ -33,6 +35,17 @@ trait base
         return mt_rand($min, $max);
     }
 
+    /**
+     * 获取url参数
+     * @return string
+     * @throws \Exception
+     */
+    public static function getUrlParmas()
+    {
+        $admin_data = self::getAdminData();
+        $random = self::getRandom();
+        return "?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['appid']}&random={$random}&contenttype=json";
+    }
 
     /**
      * 批量导入
@@ -43,10 +56,8 @@ trait base
     public static function multiAccountImport($accounts)
     {
         if(!is_array($accounts)) throw new \Error('$accounts必须为数组');
-        $admin_data = self::getAdminData();
-        $random = self::getRandom();
-        self::$url .= "v4/im_open_login_svc/multiaccount_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['appid']}&random={$random}&contenttype=json";
-        self::$postData = json_encode(["Accounts" => $accounts]);
+        self::$url .= "v4/im_open_login_svc/multiaccount_import";
+        self::$postData = ["Accounts" => $accounts];
         return new self();
     }
 
@@ -58,10 +69,8 @@ trait base
      */
     public static function accountImport($account_arr)
     {
-        $admin_data = self::getAdminData();
-        $random = self::getRandom();
-        self::$url .= "v4/im_open_login_svc/account_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['appid']}&random={$random}&contenttype=json";
-        self::$postData = json_encode($account_arr);
+        self::$url .= "v4/im_open_login_svc/account_import";
+        self::$postData = $account_arr;
         return new self();
     }
 
@@ -73,9 +82,11 @@ trait base
     public function post()
     {
         $client = new Client();
-        $response = $client->request('POST', self::$url, [
-            'body' => self::$postData
+        $url = self::$url.(self::getUrlParmas());
+        $response = $client->request('POST',$url , [
+            'body' => json_encode(self::$postData)
         ]);
         return $response->getBody()->getContents();
     }
+
 }

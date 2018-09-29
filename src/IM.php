@@ -77,7 +77,6 @@ class IM
         return self::$sig;
     }
 
-
     /**
      * 生成用户签名
      * @param $identifier
@@ -106,9 +105,10 @@ class IM
      * @param $usersig
      * @return IM
      */
-    public static function usersig($usersig)
+    public static function usersig($usersig,$identifier)
     {
-        self::$targetUsersig = $targetUsersig;
+        self::$targetUsersig = $usersig;
+        self::$identifier = $identifier;
         return new self();
     }
 
@@ -121,7 +121,7 @@ class IM
             'prefix'=>'usersig',
             'expire'=>15552000,
         ]);
-        if(self::$targetUsersig){
+        if($targetUsersig = self::$targetUsersig){
             $sig = $targetUsersig;
         }else{
             $sig = self::$sig;
@@ -129,98 +129,16 @@ class IM
         $api = self::getApi();
         $result = $api->verifySig($sig, self::$identifier, $init_time, $expire_time, $error_msg);//校验usersig
         if($result){
-            $data['status'] = 1;
-            $data['init_time'] = $init_time;
-            $data['expire_time'] = $expire_time;
+            $data['code'] = 0;
+            $data['msg'] = $error_msg;
+            $data['data'] = [
+                'init_time' => $init_time,
+                'expire_time' => $expire_time
+            ];
         }else{
-            $data['status'] = 0;
+            $data['code'] = -2;
             $data['msg'] = $error_msg;
         }
         return $data;
     }
-
-
-    /**
-     * 获取管理员usersig
-     * @return string
-     * @throws \Exception
-     */
-    public static function getAdminData()
-    {
-        $cache = S([
-            'prefix'=>'usersig',
-            'expire'=>15552000,
-        ]);
-        $config = C('im');
-        $data['usersig'] = self::genSig($config['admin_name']);
-        $data['identifier'] = $config['admin_name'];
-        $data['appid'] = $config['appid'];
-        return $data;
-    }
-
-    /**
-     * 随机数
-     * @param int $length
-     * @return int
-     */
-    public static function getRandom($length = 8)
-    {
-        $min = pow(10 , ($length - 1));
-        $max = pow(10, $length) - 1;
-        return mt_rand($min, $max);
-    }
-
-
-    /**
-     * 批量导入
-     * @param $accounts
-     * @return IM
-     * @throws \Exception
-     */
-    public static function multiAccountImport($accounts)
-    {
-        if(!is_array($accounts)) throw new \Error('$accounts必须为数组');
-        $admin_data = self::getAdminData();
-        $random = self::getRandom();
-        self::$url .= "v4/im_open_login_svc/multiaccount_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['appid']}&random={$random}&contenttype=json";
-        self::$postData = json_encode(["Accounts" => $accounts]);
-        return new self();
-    }
-
-    /**
-     * 导入账号
-     * @param $account_arr
-     * @return IM
-     * @throws \Exception
-     */
-    public static function accountImport($account_arr)
-    {
-        $admin_data = self::getAdminData();
-        $random = self::getRandom();
-        self::$url .= "v4/im_open_login_svc/account_import?usersig={$admin_data['usersig']}&identifier={$admin_data['identifier']}&sdkappid={$admin_data['appid']}&random={$random}&contenttype=json";
-        self::$postData = json_encode($account_arr);
-        return new self();
-    }
-
-    /**
-     * 发起post请求
-     * @return string
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     */
-    public function post()
-    {
-        $client = new Client();
-        $response = $client->request('POST', self::$url, [
-            'body' => self::$postData
-        ]);
-        return $response->getBody()->getContents();
-    }
-
-
-    //TODO 登录态失效
-
-    //TODO 添加好友
-
-
-
 }
