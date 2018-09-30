@@ -102,6 +102,17 @@ trait base
     }
 
     /**
+     * 拉取运营数据
+     * @return base
+     */
+    public static function getAppInfo($data = null)
+    {
+        self::$url .= 'v4/openconfigsvr/getappinfo';
+        self::$postData = $data;
+        return new self();
+    }
+
+    /**
      * 发起post同步请求
      * @return string
      * @throws \GuzzleHttp\Exception\GuzzleException
@@ -111,35 +122,8 @@ trait base
         $client = new Client();
         $url = self::$url.(self::getUrlParmas());
         $response = $client->request('POST',$url , [
-            'body' => json_encode(self::$postData)
+            'body' => json_encode(self::$postData)?:'{}'
         ]);
         return $response->getBody()->getContents();
     }
-
-    /**
-     * 异步请求
-     * @throws \Exception
-     */
-    public function postAsync()
-    {
-        $client = new Client();
-        $url = self::$url.(self::getUrlParmas());
-        $promise = $client->requestAsync('POST', $url,[
-            'body' => json_encode(self::$postData)
-        ]);
-
-        $promise->then(
-            function (ResponseInterface $res)use($status) {
-                echo 1;
-//                echo $res->getStatusCode() . "\n";
-            },
-            function (RequestException $e) {
-                echo 0;
-//                echo $e->getMessage() . "\n";
-//                echo $e->getRequest()->getMethod();
-            }
-        );
-        $promise->wait();
-    }
-
 }
