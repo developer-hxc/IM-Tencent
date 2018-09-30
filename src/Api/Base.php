@@ -2,6 +2,8 @@
 namespace HXC\Api;
 
 use GuzzleHttp\Client;
+use Psr\Http\Message\ResponseInterface;
+use GuzzleHttp\Exception\RequestException;
 
 trait base
 {
@@ -100,7 +102,7 @@ trait base
     }
 
     /**
-     * 发起post请求
+     * 发起post同步请求
      * @return string
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
@@ -112,6 +114,32 @@ trait base
             'body' => json_encode(self::$postData)
         ]);
         return $response->getBody()->getContents();
+    }
+
+    /**
+     * 异步请求
+     * @throws \Exception
+     */
+    public function postAsync()
+    {
+        $client = new Client();
+        $url = self::$url.(self::getUrlParmas());
+        $promise = $client->requestAsync('POST', $url,[
+            'body' => json_encode(self::$postData)
+        ]);
+
+        $promise->then(
+            function (ResponseInterface $res)use($status) {
+                echo 1;
+//                echo $res->getStatusCode() . "\n";
+            },
+            function (RequestException $e) {
+                echo 0;
+//                echo $e->getMessage() . "\n";
+//                echo $e->getRequest()->getMethod();
+            }
+        );
+        $promise->wait();
     }
 
 }
