@@ -102,7 +102,6 @@ trait base
     }
 
     /**
-     * 拉取运营数据
      * @return base
      */
     public static function getAppInfo($data = null)
