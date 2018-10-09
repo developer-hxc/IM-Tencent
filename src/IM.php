@@ -11,6 +11,7 @@ namespace HXC;
 use GuzzleHttp\Client;
 use HXC\Api\base;
 use Tencent\TLSSigAPI;
+use HXC\Api\WebRTCSigApi;
 
 define('BASE_PATH',str_replace( '\\' , '/' , realpath(dirname(__FILE__).'/../../../../')).'/');
 
@@ -140,5 +141,18 @@ class IM
             $data['msg'] = $error_msg;
         }
         return $data;
+    }
+
+    /**
+     * 获取房间票据
+     * @param $userid
+     * @param $roomid
+     * @return mixed
+     */
+    public static function genPrivateMapKey($userid, $roomid)
+    {
+        $api = new WebRTCSigApi();
+        $api->prepare();
+        return  $api->genPrivateMapKey($userid, $roomid);
     }
 }
