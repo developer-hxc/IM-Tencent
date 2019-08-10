@@ -1,0 +1,21 @@
+{
+    "name": "hxc/im",
+    "description": "TP5+腾讯云通信服务端api",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "hxc",
+            "email": "3365997294@qq.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "tencent/tls-sig-api": "^1.0",
+        "guzzlehttp/guzzle": "~6.0"
+    },
+    "autoload":{
+        "psr-4":{
+            "HXC\\":"src/"
+        }
+    }
+}
