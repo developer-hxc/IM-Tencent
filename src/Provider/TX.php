@@ -128,4 +128,24 @@ class TX implements Base
         return $response->getBody()->getContents();
     }
 
+    /**
+     * 发起异步post请求
+     * @return mixed
+     */
+    public function postAsync($success,$fail)
+    {
+        $client = new Client();
+        $response = $client->requestAsync('POST',$this->request['url'] , [
+            'body' => $this->request['data']
+        ]);
+        $response->then(
+            function (ResponseInterface $res) {
+                $success($res);
+            },
+            function (RequestException $e) {
+                $fail($e);
+            }
+        );
+    }
+
 }
