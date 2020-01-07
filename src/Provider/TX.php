@@ -32,6 +32,7 @@ class TX implements Base
         'account_delete'         => '/v4/im_open_login_svc/account_delete',//账号删除
         'modify_group_member_info'=>'v4/group_open_http_svc/modify_group_member_info',//修改群成员资料
         'change_group_owner'     => 'v4/group_open_http_svc/change_group_owner' //转让群组
+        'friend_check'           => '/v4/sns/friend_check',//校验好友
     ];
 
     /**
@@ -128,6 +129,26 @@ class TX implements Base
             'body' => $this->request['data']
         ]);
         return $response->getBody()->getContents();
+    }
+
+    /**
+     * 发起异步post请求
+     * @return mixed
+     */
+    public function postAsync($success,$fail)
+    {
+        $client = new Client();
+        $response = $client->requestAsync('POST',$this->request['url'] , [
+            'body' => $this->request['data']
+        ]);
+        $response->then(
+            function (ResponseInterface $res) {
+                $success($res);
+            },
+            function (RequestException $e) {
+                $fail($e);
+            }
+        );
     }
 
 }
