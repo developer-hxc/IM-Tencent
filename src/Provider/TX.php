@@ -31,7 +31,7 @@ class TX implements Base
         'friend_import'            => '/v4/sns/friend_import',//导入好友
         'account_delete'           => '/v4/im_open_login_svc/account_delete',//账号删除
         'modify_group_member_info' =>'v4/group_open_http_svc/modify_group_member_info',//修改群成员资料
-        'change_group_owner'       => 'v4/group_open_http_svc/change_group_owner' //转让群组
+        'change_group_owner'       => 'v4/group_open_http_svc/change_group_owner', //转让群组
         'friend_check'             => '/v4/sns/friend_check',//校验好友
     ];
 
