@@ -3,7 +3,7 @@ namespace HXC\Provider;
 
 use GuzzleHttp\Client;
 use HXC\Gateway\Base;
-use Tencent\TLSSigAPI;
+use Tencent\TLSSigAPIv2;
 use think\Cache;
 use think\Exception;
 
