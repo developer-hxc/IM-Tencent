@@ -42,6 +42,9 @@ class TX implements Base
     public function __construct($config)
     {
         $this->config = $config;
+        if(isset($config['fun_arr']) && is_array($config['fun_arr'])){
+            $this->funArr = array_merge($this->funArr,$config['fun_arr']);
+        }
     }
 
     /**
