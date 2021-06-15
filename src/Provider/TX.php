@@ -82,7 +82,7 @@ class TX implements Base
         if(!$sig){//缓存中没有签名
             $config = $this->config;
             $api = new TLSSigAPIv2($this->config['appid'],$this->config['secret']);;
-            $sig = $api->genSig($this->userName);//生成usersig
+            $sig = $api->genUserSig($this->userName);//生成usersig
             Cache::tag('TX-IM')->set($this->userName,$sig,15551000);
         }
         return $sig;
